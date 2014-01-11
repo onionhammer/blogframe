@@ -2,7 +2,6 @@ import times
 
 get "/":
     header "Server", "WebFrame - Root Test"
-
     const style = css"""
         body {
            font-family: verdana;
@@ -21,7 +20,7 @@ get "/":
 
 get "/test.js":
     header "Server", "WebFrame - Javascript"
-    mime "application/javascript"
+    mime   "application/javascript"
 
     tmpl js"""
         var x = "hello world!";
@@ -47,15 +46,13 @@ get "/articles/@post": tmpl html"""
     }
     """
 
-
 get "/cookies":
-    # Set response cookie
-    cookie("testcookie", "hello world!", expires = getTime().getGMTime() + initInterval(days=1))
+    var expiration = getTime().getGMTime() + initInterval(days=1)
+    cookie("testcookie", "hello world!", expiration)
 
     tmpl html"""
         Your cookie says: $(cookie("testcookie"))
         """
-
 
 cached "/test2/@post":
     header "Server", "WebFrame - Caching Test"
@@ -65,5 +62,14 @@ cached "/test2/@post":
         This page: "$(@"post")" was cached at
         $( getTime().getLocalTime.format("h:mm:ss tt") ).
         """
+
+get "/redirect":
+    header "Server", "WebFrame - Test Redirects"
+    if ?"redirected" == "":
+        redirect "/redirect?redirected=1"
+    else:
+        tmpl html"""
+            <i>Redirect successful!</i>
+            """
 
 run(8080)

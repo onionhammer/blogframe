@@ -23,7 +23,7 @@ type
     ResponseType* = enum
         Raw, Gzip, RawFile, GzipFile, Empty
 
-    Transmission* = ref object of TObject
+    Transmission* = object of TObject
         cookies, headers: PStringTable
         client: TSocket
 
@@ -65,6 +65,11 @@ proc add*(result: var HTTPResponse, value: string) =
     result.value &= value
 
 
+template sendHeaders*(now = true) =
+    ## Send headers
+    sendHeaders(result, now)
+
+
 template sendHeaders*(response: expr, now = true) =
     ## Send headers
     protocol response.status ?? CODE_200
@@ -85,11 +90,6 @@ template sendHeaders*(response: expr, now = true) =
         response.client.send(response.value)
 
 
-template sendHeaders*(now = true) =
-    ## Send headers
-    sendHeaders(result, now)
-
-
 template response*(body: stmt) {.immediate, dirty.} =
     sendHeaders
     block:
@@ -100,7 +100,7 @@ template response*(body: stmt) {.immediate, dirty.} =
 
 # Internal Procedures
 proc parsePath(verb, path: string, cache: bool): Route =
-    ## Parse the path and create a `TRoute`
+    ## Parse the path and create a `Route`
     var parts = getParts(path)
 
     return Route(
@@ -119,10 +119,12 @@ proc isMatch(route: Route, verb: string, parts: seq[string], parameters: PString
     # Check route parts match input parts
     return_ifnot parts.len == route.parts.len
 
+    # Check variables
     for i in 0.. parts.len - 1:
         if not route.variables.hasKey(i):
             return_ifnot parts[i] == route.parts[i]
 
+    # Check route length
     if route.variables.len > 0:
         return_ifnot parameters != nil
         return route.variables.len == parameters.len
@@ -197,9 +199,10 @@ proc handleResponse(server: TServer) =
                 result &= response.value
 
             of Gzip:
-                #TODO - Set response encoding
+                # Set response encoding
                 line "Content-Encoding: gzip"
                 line # Write another line to indicate end of headers
+                #TODO - GZip value
                 result &= response.value
 
             of RawFile:

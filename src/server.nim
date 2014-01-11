@@ -9,7 +9,9 @@ var handleResponse*: proc(server: TServer)
 
 const
     CODE_200* = "200 OK"
-    CODE_303* = "303 Moved"
+    CODE_301* = "301 Moved Permanently"
+    CODE_302* = "302 Found"
+    CODE_303* = "303 See Other"
     CODE_400* = "400 Bad Request"
     CODE_401* = "401 Unauthorized"
     CODE_403* = "403 Forbidden"

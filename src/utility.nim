@@ -1,6 +1,9 @@
+# Imports
 import times, strtabs, parseutils, strutils, tables, cookies
 from cgi import urlDecode
 
+
+# Procedures
 proc headerDate*(time: TTimeInfo): string =
     time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"
 
@@ -42,6 +45,13 @@ template cookie*(key, value: string; expires: TTimeInfo;
     ## Set a cookie
     bind setCookie
     result.cookies[key] = setCookie(key, value, expires, domain, path, true)
+
+
+template redirect*(path: string, permenant = false) =
+    ## Redirect to input path
+    when permenant: status CODE_301
+    else:           status CODE_302
+    header "Location", path
 
 
 template `??`*(value, default): expr =
