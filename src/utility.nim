@@ -15,8 +15,19 @@ template status*(value): expr =
 
 
 template `??`*(value, default): expr =
+    ## Retrieve the value or the default
     if value == nil: default
     else: value
+
+
+template `@`*(p): expr {.immediate.} =
+    ## Retrieve the parameter from the string
+    request.parameters[$p]
+
+
+template `?`*(p): expr {.immediate.} =
+    ## Retrieve querystring value
+    request.querystring[$p] ?? ""
 
 
 template return_ifnot*(cond): expr =

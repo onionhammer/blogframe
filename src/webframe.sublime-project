@@ -1,2 +1,10 @@
 {
+	"folders":
+	[
+		{
+			"path": "/E/Development/WebFrame/src",
+            "folder_exclude_patterns": ["nimcache"],
+            "file_exclude_patterns": ["*.sublime-workspace"]
+		}
+	]
 }

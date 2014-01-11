@@ -1,6 +1,15 @@
 # Reference:
 # https://github.com/dom96/jester/blob/master/jester.nim
 
+# TODO:
+# - Clean up this file
+#   - move logging stuff into logging.nim
+#   - move tests into tests.nim
+# - Cookies
+# - Redirects
+# - POST/Form data
+# - GZIP
+
 # Imports
 import macros, strtabs, tables
 from cgi import decodeData
@@ -12,44 +21,46 @@ export strtabs
 
 # Types
 type
-    TResponseType* = enum
+    ResponseType* = enum
         Raw, Gzip, RawFile, GzipFile, Empty
 
-    TTransmission* = ref object of TObject
+    Transmission* = ref object of TObject
         cookies, headers: PStringTable
         client: TSocket
 
-    TRequest* = object of TTransmission
+    HTTPRequest* = ref object of Transmission
         parameters, querystring: PStringTable
+        fullPath: string
 
-    TResponse* = object of TTransmission
+    HTTPResponse* = ref object of Transmission
         rawString: string
         status: string
         handled: bool
 
-        case responseType: TResponseType
+        case responseType: ResponseType
         of Raw, Gzip:
             value: string
         of RawFile, GzipFile:
             filename: string
         else: nil
 
-    TResponseCallback = proc(request: TRequest, result: var TResponse) {.nimcall.}
+    HTTPResponseCallback =
+        proc(request: HTTPRequest, result: var HTTPResponse) {.nimcall.}
 
-    TRoute = ref object
+    Route = ref object
         pattern: string
         verb: string
         cache: bool
         parts: seq[string]
         variables: TTable[int, string]
-        callback*: TResponseCallback
+        callback*: HTTPResponseCallback
 
 
 # Fields
-var logFile      = ""
-var logVerbosity = 0
-var routes       = newSeq[TRoute]()
-# var cache = {:}
+var logFile         = ""
+var logVerbosity    = 0
+var routes          = newSeq[Route]()
+var cachedResponses = initTable[string, HTTPResponse]()
 
 
 # External Templates & Procedures
@@ -57,7 +68,7 @@ proc log*(information: string, verbosity = 3) =
     # TODO - Log to file
 
 
-proc add*(result: var TResponse, value: string) =
+proc add*(result: var HTTPResponse, value: string) =
     result.value &= value
 
 
@@ -88,34 +99,26 @@ template response*(body: stmt) {.immediate, dirty.} =
         body
 
 
-template `@`(p): expr {.immediate.} =
-    ## Retrieve the parameter from the string
-    request.parameters[$p]
-
-
-template `?`(p): expr {.immediate.} =
-    request.querystring[$p] ?? ""
-
-
 # Internal Procedures
-proc parsePath(verb, path: string, cache: bool): TRoute =
-    # TODO - Parse the path
-    result = TRoute(
+proc parsePath(verb, path: string, cache: bool): Route =
+    ## Parse the path and create a `TRoute`
+    result = Route(
         verb:    verb,
         pattern: path,
-        parts:   getParts(path)
+        parts:   getParts(path),
+        cache:   cache
     )
 
     result.variables = getVariables(result.parts)
 
 
-proc isMatch(route: TRoute, verb: string, parts: seq[string], parameters: PStringTable): bool =
+proc isMatch(route: Route, verb: string, parts: seq[string], parameters: PStringTable): bool =
     ## Check if path matches input route
     return_ifnot route.verb == verb
 
     # Check route parts match input parts
     if parts.len == route.parts.len:
-        for i in 0 .. parts.len - 1:
+        for i in 0.. parts.len - 1:
             if not route.variables.hasKey(i):
                 return_ifnot parts[i] == route.parts[i]
     else:
@@ -130,9 +133,10 @@ proc isMatch(route: TRoute, verb: string, parts: seq[string], parameters: PStrin
     return true
 
 
-proc makeRequest(route: TRoute, server: TServer, parameters: PStringTable): TRequest =
-    # Parse params & querystring
-    result = TRequest(
+proc makeRequest(route: Route, server: TServer, parameters: PStringTable): HTTPRequest =
+    ## Encapsulate request
+    result = HTTPRequest(
+        fullPath:    server.path,
         parameters:  parameters,
         querystring: parseQueryString(server.query)
     )
@@ -140,12 +144,8 @@ proc makeRequest(route: TRoute, server: TServer, parameters: PStringTable): TReq
 
 template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =
     ## Find route matching request
-    let
-        verb  = server.reqMethod
-        path  = server.path
-        query = server.query
-
-    var parts = getParts(path)
+    let verb  = server.reqMethod
+    var parts = getParts(server.path)
 
     # Attempt to find a matching route
     for route in routes:
@@ -167,7 +167,7 @@ proc handleResponse(server: TServer) =
         # and pass them to the route's callback
         var request = route.makeRequest(server, parameters)
 
-        var response = TResponse(
+        var response = HTTPResponse(
             responseType: Raw,
             value:        "",
             client:       server.client,
@@ -207,27 +207,34 @@ proc handleResponse(server: TServer) =
                 return # Send no response
 
             # Cache the response if the route calls for it
-            if route.cache:
+            if route.cache and (response.status ?? CODE_200) == CODE_200:
                 response.rawString = result
-                #TODO cache.insert(route, response)
+                cachedResponses[server.path] = response
 
             server.client.send result
 
 
 template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate.} =
-    bind parsePath, routes, TRequest, add
+    bind HTTPRequest, parsePath, routes, add, cachedResponses
+    var route = parsePath(verb, path, cache)
 
-    block:
-        var route = parsePath(verb, path, cache)
+    when cache:
+        route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
+            var cachedResponse = webframe.cachedResponses[request.fullPath]
 
-        route.callback = proc (request: TRequest, result: var TResponse) {.nimcall.} =
-            when cache:
-                block: #TODO - Check if result is cached
-                    result.handled = true
-                    echo "cached!!"
+            # Check if result is cached
+            if cachedResponse != nil:
+                result.handled = true
+                result.client &= cachedResponse.rawString
+
+            else:
+                body
+
+    else:
+        route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
             body
 
-        routes.add(route)
+    routes.add(route)
 
 
 template get*(path: string, body: stmt): stmt {.immediate.} =
@@ -258,55 +265,4 @@ proc run*(port = 80) =
 
 # Tests
 when isMainModule:
-
-    get "/":
-        header "Server", "WebFrame - Root Test"
-
-        const style = css"""
-            body {
-               font-family: verdana;
-               font-size: 15pt;
-               background: #000;
-               color: #FFF;
-            }
-            """
-
-        tmpl html"""
-            <style>$style</style>
-            <script src=test.js></script>
-            <title>Hello world!</title>
-            <bold>Hello world!</bold>
-            """
-
-    get "/test.js":
-        header "Server", "WebFrame - Javascript"
-        mime "application/javascript"
-
-        const script = js"""
-            var x = "hello world!";
-            console.log(x);
-            """
-
-        result &= script
-
-    get "/handle":
-        header "Server", "WebFrame - Handling Test"
-        sendHeaders
-        response: tmpl html"""
-            <title>Writing out response directly to socket!</title>
-            <i>hello world!</i>
-            """
-
-    get "/handle/complex/path": tmpl html"""
-        <title>This is a more complex path!</title>
-        <i>This is a more complex path!</i>
-        """
-
-    get "/articles/@post": tmpl html"""
-        Hello, you picked the $(@"post") page!<br>
-        $if ?"page" != "" {
-            page is: $(?"page")
-        }
-        """
-
-    run(8080)
+    include tests
