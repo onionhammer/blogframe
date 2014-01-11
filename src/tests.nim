@@ -47,6 +47,16 @@ get "/articles/@post": tmpl html"""
     }
     """
 
+
+get "/cookies":
+    # Set response cookie
+    cookie("testcookie", "hello world!", expires = getTime().getGMTime() + initInterval(days=1))
+
+    tmpl html"""
+        Your cookie says: $(cookie("testcookie"))
+        """
+
+
 cached "/test2/@post":
     header "Server", "WebFrame - Caching Test"
     maxage 600

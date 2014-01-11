@@ -2,7 +2,6 @@
 # https://github.com/dom96/jester/blob/master/jester.nim
 
 # TODO:
-# - Cookies
 # - Redirects
 # - POST/Form data
 # - GZIP
@@ -11,7 +10,7 @@
 # - Filesystem change detection
 
 # Imports
-import macros, strtabs, tables
+import macros, strtabs, tables, cookies
 from cgi import decodeData
 import server, templates, utility, logging
 include responses
@@ -66,11 +65,6 @@ proc add*(result: var HTTPResponse, value: string) =
     result.value &= value
 
 
-template sendHeaders*(now = true) =
-    ## Send headers
-    sendHeaders(result, now)
-
-
 template sendHeaders*(response: expr, now = true) =
     ## Send headers
     protocol response.status ?? CODE_200
@@ -78,12 +72,22 @@ template sendHeaders*(response: expr, now = true) =
     if not response.headers.hasKey("Content-Type"):
         line "Content-Type: text/html"
 
-    for key,value in response.headers:
+    # Write response headers
+    for key, value in response.headers:
         line key & ": " & value
+
+    # Write cookies
+    for key, value in response.cookies:
+        line "Set-Cookie: " & value
 
     when now:
         line
         response.client.send(response.value)
+
+
+template sendHeaders*(now = true) =
+    ## Send headers
+    sendHeaders(result, now)
 
 
 template response*(body: stmt) {.immediate, dirty.} =
@@ -128,10 +132,15 @@ proc isMatch(route: Route, verb: string, parts: seq[string], parameters: PString
 
 proc makeRequest(route: Route, server: TServer, parameters: PStringTable): HTTPRequest =
     ## Encapsulate request
-    result = HTTPRequest(
+    var cookies =
+        if server.headers["Cookie"] != nil: parseCookies(server.headers["Cookie"])
+        else: newStringTable()
+
+    return HTTPRequest(
         fullPath:    server.path,
         parameters:  parameters,
-        querystring: parseQueryString(server.query)
+        querystring: parseQueryString(server.query),
+        cookies:     cookies
     )
 
 
@@ -164,7 +173,8 @@ proc handleResponse(server: TServer) =
             responseType: Raw,
             value:        "",
             client:       server.client,
-            headers:      newStringTable()
+            headers:      newStringTable(),
+            cookies:      newStringTable()
         )
 
         route.callback(request, response)

@@ -1,4 +1,4 @@
-import times, strtabs, parseutils, strutils, tables
+import times, strtabs, parseutils, strutils, tables, cookies
 from cgi import urlDecode
 
 proc headerDate*(time: TTimeInfo): string =
@@ -30,6 +30,18 @@ template maxAge*(seconds): expr =
 
 template status*(value): expr =
     result.status = value
+
+
+template cookie*(key): expr =
+    ## Retrieve a cookies
+    request.cookies[key] ?? ""
+
+
+template cookie*(key, value: string; expires: TTimeInfo;
+                 domain = ""; path = ""): expr =
+    ## Set a cookie
+    bind setCookie
+    result.cookies[key] = setCookie(key, value, expires, domain, path, true)
 
 
 template `??`*(value, default): expr =
