@@ -1,4 +1,5 @@
 import strtabs, parseutils, strutils, tables
+from cgi import urlDecode
 
 
 template header*(key, value): expr =
@@ -45,9 +46,22 @@ proc getVariables*(parts: seq[string]): TTable[int, string] =
             result[i] = p.substr(1)
 
 
-proc parseQueryString*(querystring: string): PStringTable =
+proc parseQueryString*(query: string): PStringTable =
     ## Parse out querystring in path
     result = newStringTable()
+
+    var key: string
+    var i = 0
+
+    while i < query.len:
+        var value: string
+        inc(i, query.parseUntil(value, {'&', '='}, i))
+        if query[i] == '=':
+            key = urlDecode(value)
+        elif key != nil:
+            result[key] = urlDecode(value)
+            key = nil
+        inc(i)
 
 
 proc parseParams*(path: seq[string], parts: TTable[int, string]): PStringTable =

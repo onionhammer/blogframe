@@ -5,10 +5,9 @@
 import macros, strtabs, tables
 from cgi import decodeData
 import server, templates, utility
+include responses
 
 export strtabs
-
-include responses
 
 
 # Types
@@ -91,7 +90,7 @@ template response*(body: stmt) {.immediate, dirty.} =
 
 template `@`(p): expr {.immediate.} =
     ## Retrieve the parameter from the string
-    request.parameters[$p] ?? ""
+    request.parameters[$p]
 
 
 template `?`(p): expr {.immediate.} =
@@ -102,16 +101,16 @@ template `?`(p): expr {.immediate.} =
 proc parsePath(verb, path: string, cache: bool): TRoute =
     # TODO - Parse the path
     result = TRoute(
-        verb: verb,
+        verb:    verb,
         pattern: path,
-        parts: getParts(path)
+        parts:   getParts(path)
     )
 
     result.variables = getVariables(result.parts)
 
 
-proc isMatch(route: TRoute, verb, path, query: string, parts: seq[string], parameters: PStringTable): bool =
-    #TODO - Do more sophisticated pattern matching
+proc isMatch(route: TRoute, verb: string, parts: seq[string], parameters: PStringTable): bool =
+    ## Check if path matches input route
     return_ifnot route.verb == verb
 
     # Check route parts match input parts
@@ -134,12 +133,13 @@ proc isMatch(route: TRoute, verb, path, query: string, parts: seq[string], param
 proc makeRequest(route: TRoute, server: TServer, parameters: PStringTable): TRequest =
     # Parse params & querystring
     result = TRequest(
-        parameters: parameters,
+        parameters:  parameters,
         querystring: parseQueryString(server.query)
     )
 
 
 template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =
+    ## Find route matching request
     let
         verb  = server.reqMethod
         path  = server.path
@@ -151,7 +151,7 @@ template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =
     for route in routes:
         var parameters = parseParams(parts, route.variables)
 
-        if route.isMatch(verb, path, query, parts, parameters):
+        if route.isMatch(verb, parts, parameters):
             body
             return
 
@@ -169,9 +169,9 @@ proc handleResponse(server: TServer) =
 
         var response = TResponse(
             responseType: Raw,
-            value: "",
-            client: server.client,
-            headers: newStringTable()
+            value:        "",
+            client:       server.client,
+            headers:      newStringTable()
         )
 
         route.callback(request, response)
@@ -305,7 +305,10 @@ when isMainModule:
             """
 
     get "/articles/@post": tmpl html"""
-        Hello, you picked the $(@"post") page!
+        Hello, you picked the $(@"post") page!<br>
+        $if ?"page" != "" {
+            page is: $(?"page")
+        }
         """
 
     run(8080)
