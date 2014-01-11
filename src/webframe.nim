@@ -2,7 +2,8 @@
 # https://github.com/dom96/jester/blob/master/jester.nim
 
 # Imports
-import macros, strtabs
+import macros, strtabs, tables
+from cgi import decodeData
 import server, templates, utility
 
 export strtabs
@@ -20,6 +21,7 @@ type
         client: TSocket
 
     TRequest* = object of TTransmission
+        parameters, querystring: PStringTable
 
     TResponse* = object of TTransmission
         rawString: string
@@ -39,6 +41,8 @@ type
         pattern: string
         verb: string
         cache: bool
+        parts: seq[string]
+        variables: TTable[int, string]
         callback*: TResponseCallback
 
 
@@ -46,46 +50,25 @@ type
 var logFile      = ""
 var logVerbosity = 0
 var routes       = newSeq[TRoute]()
-# var cache = {:}.newStringTable()
+# var cache = {:}
 
 
-# Procedures
+# External Templates & Procedures
 proc log*(information: string, verbosity = 3) =
     # TODO - Log to file
-
-
-proc parsePath(verb, path: string, cache: bool): TRoute =
-    # TODO - Parse the path
-    return TRoute(verb: verb, pattern: path)
-
-
-proc isMatch(route: TRoute, verb, path, query: string): bool =
-    #TODO - Do more sophisticated pattern matching
-    return route.verb == verb and
-           route.pattern == path
 
 
 proc add*(result: var TResponse, value: string) =
     result.value &= value
 
 
-template matchRoute(route: expr, body: stmt): stmt {.immediate.} =
-    let
-        verb  = server.reqMethod
-        path  = server.path
-        query = server.query
-
-    # Attempt to find a matching route
-    for route in routes:
-        if route.isMatch(verb, path, query):
-            body
-            return
-
-    server.not_found()
+template sendHeaders*(now = true) =
+    ## Send headers
+    sendHeaders(result, now)
 
 
-template sendHeaders(response: expr, now=true) =
-    ## Immediately send headers
+template sendHeaders*(response: expr, now = true) =
+    ## Send headers
     protocol response.status ?? CODE_200
 
     if not response.headers.hasKey("Content-Type"):
@@ -94,27 +77,96 @@ template sendHeaders(response: expr, now=true) =
     for key,value in response.headers:
         line key & ": " & value
 
-    line
-
     when now:
+        line
         response.client.send(response.value)
 
 
-template frame(body: stmt) {.immediate, dirty.} =
+template response*(body: stmt) {.immediate, dirty.} =
     block:
         result.handled = true
         var result = result.client
         body
 
 
+template `@`(p): expr {.immediate.} =
+    ## Retrieve the parameter from the string
+    request.parameters[$p] ?? ""
+
+
+template `?`(p): expr {.immediate.} =
+    request.querystring[$p] ?? ""
+
+
+# Internal Procedures
+proc parsePath(verb, path: string, cache: bool): TRoute =
+    # TODO - Parse the path
+    result = TRoute(
+        verb: verb,
+        pattern: path,
+        parts: getParts(path)
+    )
+
+    result.variables = getVariables(result.parts)
+
+
+proc isMatch(route: TRoute, verb, path, query: string, parts: seq[string], parameters: PStringTable): bool =
+    #TODO - Do more sophisticated pattern matching
+    return_ifnot route.verb == verb
+
+    # Check route parts match input parts
+    if parts.len == route.parts.len:
+        for i in 0 .. parts.len - 1:
+            if not route.variables.hasKey(i):
+                return_ifnot parts[i] == route.parts[i]
+    else:
+        return false
+
+    if route.variables.len > 0:
+        if parameters != nil:
+            result = result and route.variables.len == parameters.len
+        else:
+            return false
+
+    return true
+
+
+proc makeRequest(route: TRoute, server: TServer, parameters: PStringTable): TRequest =
+    # Parse params & querystring
+    result = TRequest(
+        parameters: parameters,
+        querystring: parseQueryString(server.query)
+    )
+
+
+template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =
+    let
+        verb  = server.reqMethod
+        path  = server.path
+        query = server.query
+
+    var parts = getParts(path)
+
+    # Attempt to find a matching route
+    for route in routes:
+        var parameters = parseParams(parts, route.variables)
+
+        if route.isMatch(verb, path, query, parts, parameters):
+            body
+            return
+
+    server.not_found()
+
+
 proc handleResponse(server: TServer) =
     ## Handles all requests sent in from server
 
     # Determine path & verb
-    matchRoute(route):
+    matchRoute(route, parameters):
         # Create request & response objects
         # and pass them to the route's callback
-        var request  = TRequest()
+        var request = route.makeRequest(server, parameters)
+
         var response = TResponse(
             responseType: Raw,
             value: "",
@@ -129,16 +181,18 @@ proc handleResponse(server: TServer) =
         # which the server sends back.
         if not response.handled:
 
-            var result = ""
-
+            var result = "" # TODO - Use a buffered response object?
             sendHeaders(response, false)
 
             case response.responseType
             of Raw:
+                line # Write another line to indicate end of headers
                 result &= response.value
 
             of Gzip:
-                #TODO- Set response encoding
+                #TODO - Set response encoding
+                line "Content-Encoding: gzip"
+                line # Write another line to indicate end of headers
                 result &= response.value
 
             of RawFile:
@@ -146,9 +200,11 @@ proc handleResponse(server: TServer) =
 
             of GzipFile:
                 #TODO - Set response encoding AND read file
+                line "Content-Encoding: gzip"
+                line # Write another line to indicate end of headers
 
-            else:
-                nil # Send no response
+            of Empty:
+                return # Send no response
 
             # Cache the response if the route calls for it
             if route.cache:
@@ -206,7 +262,7 @@ when isMainModule:
     get "/":
         header "Server", "WebFrame - Root Test"
 
-        template style = tmpl css"""
+        const style = css"""
             body {
                font-family: verdana;
                font-size: 15pt;
@@ -216,7 +272,7 @@ when isMainModule:
             """
 
         tmpl html"""
-            <style>${ style }</style>
+            <style>$style</style>
             <script src=test.js></script>
             <title>Hello world!</title>
             <bold>Hello world!</bold>
@@ -226,17 +282,30 @@ when isMainModule:
         header "Server", "WebFrame - Javascript"
         mime "application/javascript"
 
-        tmpl js"""
+        const script = js"""
             var x = "hello world!";
             console.log(x);
             """
 
+        result &= script
+
     get "/handle":
         header "Server", "WebFrame - Handling Test"
-        sendHeaders(result)
-        frame:
+        sendHeaders
+        response:
             tmpl html"""
+                <title>Writing out response directly to socket!</title>
                 <i>hello world!</i>
                 """
+
+    get "/handle/complex/path":
+        tmpl html"""
+            <title>This is a more complex path!</title>
+            <i>This is a more complex path!</i>
+            """
+
+    get "/articles/@post": tmpl html"""
+        Hello, you picked the $(@"post") page!
+        """
 
     run(8080)
