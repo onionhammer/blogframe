@@ -1,5 +1,8 @@
-import strtabs, parseutils, strutils, tables
+import times, strtabs, parseutils, strutils, tables
 from cgi import urlDecode
+
+proc headerDate*(time: TTimeInfo): string =
+    time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"
 
 
 template header*(key, value): expr =
@@ -8,6 +11,21 @@ template header*(key, value): expr =
 
 template mime*(value): expr =
     header "Content-Type", value
+
+
+template date*(time): expr =
+    ## Format time & injects in header
+    header "Date", headerDate(time)
+
+
+template expires*(time): expr =
+    ## Format time & injects in header
+    header "Expires", headerDate(time)
+
+
+template maxAge*(seconds): expr =
+    ## Inject max-age into header
+    header "Cache-Control", "max-age=" & $seconds
 
 
 template status*(value): expr =

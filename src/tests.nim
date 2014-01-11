@@ -23,16 +23,13 @@ get "/test.js":
     header "Server", "WebFrame - Javascript"
     mime "application/javascript"
 
-    const script = js"""
+    tmpl js"""
         var x = "hello world!";
         console.log(x);
         """
 
-    result &= script
-
 get "/handle":
     header "Server", "WebFrame - Writing directly to socket"
-    sendHeaders
     response: tmpl html"""
         <title>Writing out response directly to socket!</title>
         <i>hello world!</i>
@@ -52,9 +49,11 @@ get "/articles/@post": tmpl html"""
 
 cached "/test2/@post":
     header "Server", "WebFrame - Caching Test"
+    maxage 600
+
     tmpl html"""
         This page: "$(@"post")" was cached at
-        $( getTime().getLocalTime().format("h:mm:ss tt") ).
+        $( getTime().getLocalTime.format("h:mm:ss tt") ).
         """
 
 run(8080)

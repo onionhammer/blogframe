@@ -87,6 +87,7 @@ template sendHeaders*(response: expr, now = true) =
 
 
 template response*(body: stmt) {.immediate, dirty.} =
+    sendHeaders
     block:
         result.handled = true
         var result = result.client
@@ -96,14 +97,15 @@ template response*(body: stmt) {.immediate, dirty.} =
 # Internal Procedures
 proc parsePath(verb, path: string, cache: bool): Route =
     ## Parse the path and create a `TRoute`
-    result = Route(
-        verb:    verb,
-        pattern: path,
-        parts:   getParts(path),
-        cache:   cache
-    )
+    var parts = getParts(path)
 
-    result.variables = getVariables(result.parts)
+    return Route(
+        verb:      verb,
+        pattern:   path,
+        parts:     parts,
+        variables: getVariables(parts),
+        cache:     cache
+    )
 
 
 proc isMatch(route: Route, verb: string, parts: seq[string], parameters: PStringTable): bool =
@@ -111,18 +113,15 @@ proc isMatch(route: Route, verb: string, parts: seq[string], parameters: PString
     return_ifnot route.verb == verb
 
     # Check route parts match input parts
-    if parts.len == route.parts.len:
-        for i in 0.. parts.len - 1:
-            if not route.variables.hasKey(i):
-                return_ifnot parts[i] == route.parts[i]
-    else:
-        return false
+    return_ifnot parts.len == route.parts.len
+
+    for i in 0.. parts.len - 1:
+        if not route.variables.hasKey(i):
+            return_ifnot parts[i] == route.parts[i]
 
     if route.variables.len > 0:
-        if parameters != nil:
-            result = result and route.variables.len == parameters.len
-        else:
-            return false
+        return_ifnot parameters != nil
+        return route.variables.len == parameters.len
 
     return true
 
