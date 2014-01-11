@@ -6,6 +6,9 @@
 # - Redirects
 # - POST/Form data
 # - GZIP
+# - Responding w/ files
+# - 'Compilation' of files
+# - Filesystem change detection
 
 # Imports
 import macros, strtabs, tables
@@ -54,8 +57,6 @@ type
 
 
 # Fields
-var logFile         = ""
-var logVerbosity    = 0
 var routes          = newSeq[Route]()
 var cachedResponses = initTable[string, HTTPResponse]()
 
@@ -175,6 +176,10 @@ proc handleResponse(server: TServer) =
         if not response.handled:
 
             var result = "" # TODO - Use a buffered response object?
+
+            if response.status == nil:
+                response.status = CODE_200
+
             sendHeaders(response, false)
 
             case response.responseType
@@ -200,7 +205,7 @@ proc handleResponse(server: TServer) =
                 return # Send no response
 
             # Cache the response if the route calls for it
-            if route.cache and (response.status ?? CODE_200) == CODE_200:
+            if route.cache and response.status == CODE_200:
                 response.rawString = result
                 cachedResponses[server.path] = response
 
@@ -211,8 +216,8 @@ template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate
     bind HTTPRequest, parsePath, routes, add, cachedResponses
     var route = parsePath(verb, path, cache)
 
-    when cache:
-        route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
+    route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
+        when cache:
             var cachedResponse = webframe.cachedResponses[request.fullPath]
 
             # Check if result is cached
@@ -220,12 +225,7 @@ template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate
                 result.handled = true
                 result.client &= cachedResponse.rawString
 
-            else:
-                body
-
-    else:
-        route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
-            body
+        body
 
     routes.add(route)
 

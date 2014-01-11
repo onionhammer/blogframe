@@ -31,7 +31,7 @@ get "/test.js":
     result &= script
 
 get "/handle":
-    header "Server", "WebFrame - Handling Test"
+    header "Server", "WebFrame - Writing directly to socket"
     sendHeaders
     response: tmpl html"""
         <title>Writing out response directly to socket!</title>
