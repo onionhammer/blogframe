@@ -292,17 +292,15 @@ when isMainModule:
     get "/handle":
         header "Server", "WebFrame - Handling Test"
         sendHeaders
-        response:
-            tmpl html"""
-                <title>Writing out response directly to socket!</title>
-                <i>hello world!</i>
-                """
-
-    get "/handle/complex/path":
-        tmpl html"""
-            <title>This is a more complex path!</title>
-            <i>This is a more complex path!</i>
+        response: tmpl html"""
+            <title>Writing out response directly to socket!</title>
+            <i>hello world!</i>
             """
+
+    get "/handle/complex/path": tmpl html"""
+        <title>This is a more complex path!</title>
+        <i>This is a more complex path!</i>
+        """
 
     get "/articles/@post": tmpl html"""
         Hello, you picked the $(@"post") page!<br>
