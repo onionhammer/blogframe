@@ -2,9 +2,6 @@
 # https://github.com/dom96/jester/blob/master/jester.nim
 
 # TODO:
-# - Clean up this file
-#   - move logging stuff into logging.nim
-#   - move tests into tests.nim
 # - Cookies
 # - Redirects
 # - POST/Form data
@@ -13,10 +10,10 @@
 # Imports
 import macros, strtabs, tables
 from cgi import decodeData
-import server, templates, utility
+import server, templates, utility, logging
 include responses
 
-export strtabs
+export strtabs, logging
 
 
 # Types
@@ -64,10 +61,6 @@ var cachedResponses = initTable[string, HTTPResponse]()
 
 
 # External Templates & Procedures
-proc log*(information: string, verbosity = 3) =
-    # TODO - Log to file
-
-
 proc add*(result: var HTTPResponse, value: string) =
     result.value &= value
 
@@ -250,11 +243,6 @@ template post*(path: string, body: stmt): stmt {.immediate.} =
 template cached*(path: string, body: stmt): stmt {.dirty, immediate.} =
     bind addRoute
     addRoute("GET", path, true, body)
-
-
-proc setLog*(log = "output.log", verbosity = 3) =
-    logFile      = log
-    logVerbosity = verbosity
 
 
 proc run*(port = 80) =
