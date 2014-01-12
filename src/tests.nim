@@ -78,6 +78,7 @@ get "/form":
         <form method=POST>
             <p>hello, please fill this in:
             <p>my name is <input name="name">
+            <p>and i'm <input name="age"> years old
             <p><button>go!</button>
         </form>
         """
@@ -86,11 +87,26 @@ post "/form":
     header "Server", "WebFrame - Test Forms"
     if form("name") != "":
         tmpl html"""
-            Hello $(form("name"))!
+            Hello $(form("name")),
+            I see you're $(form("age"))
             """
     else:
         tmpl html"""
             Sorry, didn't get that.
             """
+
+get "/upload":
+    header "Server", "WebFrame - Test Forms"
+    tmpl html"""
+        <form method=POST enctype="multipart/form-data">
+            <p>file: <input name=file type=file>
+            <p>save as: <input name=filename>
+            <p><button>Upload</button>
+        </form>
+        """
+
+post "/upload":
+    header "Server", "WebFrame - Test Forms"
+    tmpl html"""<i>Thanks, we'll save this right away</i>"""
 
 run(8080)

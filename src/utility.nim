@@ -88,13 +88,11 @@ proc getVariables*(parts: seq[string]): TTable[int, string] =
         if p[0] == '@':
             result[i] = p.substr(1)
 
-
-proc parseMultipartForm*(form: PStringTable,
-                         files: var TTable[string, tuple[fields: PStringTable, body: string]],
-                         body: string) =
+proc parseMultipartForm*(contentType, body: string,
+    form: PStringTable,
+    files: var TTable[string, tuple[fields: PStringTable, body: string]]) =
     ## Parse the multi-part form data
     echo body
-
 
 proc parseQueryString*(query: string): PStringTable =
     ## Parse out querystring in path
@@ -114,7 +112,7 @@ proc parseQueryString*(query: string): PStringTable =
         inc(i)
 
 proc parseParams*(path: seq[string], parts: TTable[int, string]): PStringTable =
-    ## Determines if input path matches up with
+    ## Determines if input path matches up with parts
     var
         init      = true
         partIndex = 0

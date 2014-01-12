@@ -9,7 +9,7 @@
 # - Filesystem change detection
 
 # Imports
-import macros, strtabs, tables, cookies
+import macros, strtabs, strutils, tables, cookies
 import server, templates, utility, logging
 from cgi import decodeData
 include responses
@@ -148,11 +148,11 @@ proc makeRequest(route: Route, server: TServer, parameters: PStringTable): HTTPR
     )
 
     if route.verb == "POST":
-        var contentType = server.headers["Content-Type"]
+        var contentType = server.headers["Content-Type"] ?? ""
         if contentType == "application/x-www-form-urlencoded":
             result.form = parseQueryString(server.body)
-        elif contentType == "multipart/form-data":
-            parseMultipartForm(result.form, result.files, server.body)
+        elif contentType.startsWith("multipart/form-data"):
+            parseMultipartForm(contentType, server.body, result.form, result.files)
 
 
 template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =
