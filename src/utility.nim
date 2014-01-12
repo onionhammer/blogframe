@@ -3,49 +3,37 @@ import times, strtabs, parseutils, strutils, tables, cookies
 from cgi import urlDecode
 
 
-# Procedures
-proc headerDate*(time: TTimeInfo): string =
-    time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"
-
-
+# Header Procedures
 template header*(key, value): expr =
     result.headers[key] = value
 
-
 template mime*(value): expr =
     header "Content-Type", value
-
 
 template date*(time): expr =
     ## Format time & injects in header
     header "Date", headerDate(time)
 
-
 template expires*(time): expr =
     ## Format time & injects in header
     header "Expires", headerDate(time)
-
 
 template maxAge*(seconds): expr =
     ## Inject max-age into header
     header "Cache-Control", "max-age=" & $seconds
 
-
 template status*(value): expr =
     result.status = value
-
 
 template cookie*(key): expr =
     ## Retrieve a cookies
     request.cookies[key] ?? ""
-
 
 template cookie*(key, value: string; expires: TTimeInfo;
                  domain = ""; path = ""): expr =
     ## Set a cookie
     bind setCookie
     result.cookies[key] = setCookie(key, value, expires, domain, path, true)
-
 
 template redirect*(path: string, permenant = false) =
     ## Redirect to input path
@@ -54,26 +42,31 @@ template redirect*(path: string, permenant = false) =
     header "Location", path
 
 
+# Custom operators
 template `??`*(value, default): expr =
     ## Retrieve the value or the default
     if value == nil: default
     else: value
 
-
 template `@`*(p): expr {.immediate.} =
     ## Retrieve the parameter from the string
     request.parameters[$p]
-
 
 template `?`*(p): expr {.immediate.} =
     ## Retrieve querystring value
     request.querystring[$p] ?? ""
 
+template form*(p): expr {.immediate.} =
+    ## Retrieve form value
+    request.form[p] ?? ""
+
+# Helper Procedures
+proc headerDate*(time: TTimeInfo): string =
+    time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"
 
 template return_ifnot*(cond): expr =
     if not cond:
         return false
-
 
 proc getParts*(path: string): seq[string] =
     ## Break up the path by `/`
@@ -85,7 +78,6 @@ proc getParts*(path: string): seq[string] =
         inc(i, path.parseUntil(value, '/', i) + 1)
         result.add value
 
-
 proc getVariables*(parts: seq[string]): TTable[int, string] =
     ## Retrieve the variable portions of the path
     result = initTable[int, string](16)
@@ -95,6 +87,13 @@ proc getVariables*(parts: seq[string]): TTable[int, string] =
 
         if p[0] == '@':
             result[i] = p.substr(1)
+
+
+proc parseMultipartForm*(form: PStringTable,
+                         files: var TTable[string, tuple[fields: PStringTable, body: string]],
+                         body: string) =
+    ## Parse the multi-part form data
+    echo body
 
 
 proc parseQueryString*(query: string): PStringTable =
@@ -113,7 +112,6 @@ proc parseQueryString*(query: string): PStringTable =
             result[key] = urlDecode(value)
             key = nil
         inc(i)
-
 
 proc parseParams*(path: seq[string], parts: TTable[int, string]): PStringTable =
     ## Determines if input path matches up with

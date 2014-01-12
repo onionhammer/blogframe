@@ -55,11 +55,11 @@ proc handleHttpRequest*(server: TServer) =
     var client = server.client
 
     try:
-        ## Generate a response
+        # Generate a response
         handleResponse(server)
 
     except:
-        ## Display error page
+        # Display error page
         sendResponse(server, result):
             protocol CODE_400
             line "Content-type: text/html"
@@ -77,13 +77,5 @@ proc start*(port = 8080, reuseAddr = true) =
         server.handleHttpRequest()
 
 
-block:
-    # Initialize
-    handleResponse = defaultResponse
-
-
-# Tests
-when isMainModule:
-
-    # Start server
-    start()
+# Initialize
+handleResponse = defaultResponse

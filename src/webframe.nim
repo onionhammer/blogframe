@@ -2,8 +2,7 @@
 # https://github.com/dom96/jester/blob/master/jester.nim
 
 # TODO:
-# - Redirects
-# - POST/Form data
+# - FILE upload (multipart/form-data)
 # - GZIP
 # - Responding w/ files
 # - 'Compilation' of files
@@ -11,8 +10,8 @@
 
 # Imports
 import macros, strtabs, tables, cookies
-from cgi import decodeData
 import server, templates, utility, logging
+from cgi import decodeData
 include responses
 
 export strtabs, logging
@@ -20,6 +19,12 @@ export strtabs, logging
 
 # Types
 type
+    HTTPResponseCallback =
+        proc(request: HTTPRequest, result: var HTTPResponse) {.nimcall.}
+
+    FileData* =
+        TTable[string, tuple[fields: PStringTable, body: string]]
+
     ResponseType* = enum
         Raw, Gzip, RawFile, GzipFile, Empty
 
@@ -28,23 +33,20 @@ type
         client: TSocket
 
     HTTPRequest* = ref object of Transmission
-        parameters, querystring: PStringTable
+        parameters, querystring, form: PStringTable
+        files: FileData
         fullPath: string
 
     HTTPResponse* = ref object of Transmission
         rawString: string
         status: string
         handled: bool
-
         case responseType: ResponseType
         of Raw, Gzip:
             value: string
         of RawFile, GzipFile:
             filename: string
         else: nil
-
-    HTTPResponseCallback =
-        proc(request: HTTPRequest, result: var HTTPResponse) {.nimcall.}
 
     Route = ref object
         pattern: string
@@ -138,12 +140,19 @@ proc makeRequest(route: Route, server: TServer, parameters: PStringTable): HTTPR
         if server.headers["Cookie"] != nil: parseCookies(server.headers["Cookie"])
         else: newStringTable()
 
-    return HTTPRequest(
+    result = HTTPRequest(
         fullPath:    server.path,
         parameters:  parameters,
         querystring: parseQueryString(server.query),
         cookies:     cookies
     )
+
+    if route.verb == "POST":
+        var contentType = server.headers["Content-Type"]
+        if contentType == "application/x-www-form-urlencoded":
+            result.form = parseQueryString(server.body)
+        elif contentType == "multipart/form-data":
+            parseMultipartForm(result.form, result.files, server.body)
 
 
 template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =

@@ -72,4 +72,25 @@ get "/redirect":
             <i>Redirect successful!</i>
             """
 
+get "/form":
+    header "Server", "WebFrame - Test Forms"
+    tmpl html"""
+        <form method=POST>
+            <p>hello, please fill this in:
+            <p>my name is <input name="name">
+            <p><button>go!</button>
+        </form>
+        """
+
+post "/form":
+    header "Server", "WebFrame - Test Forms"
+    if form("name") != "":
+        tmpl html"""
+            Hello $(form("name"))!
+            """
+    else:
+        tmpl html"""
+            Sorry, didn't get that.
+            """
+
 run(8080)
