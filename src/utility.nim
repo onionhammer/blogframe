@@ -48,7 +48,7 @@ template `??`*(value, default): expr =
     if value == nil: default
     else: value
 
-template `@`*(p): expr {.immediate.} =
+template `@`*(p: string): expr =
     ## Retrieve the parameter from the string
     request.parameters[$p]
 

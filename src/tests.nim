@@ -21,7 +21,6 @@ get "/":
 get "/test.js":
     header "Server", "WebFrame - Javascript"
     mime   "application/javascript"
-
     tmpl js"""
         var x = "hello world!";
         console.log(x);
@@ -49,7 +48,6 @@ get "/articles/@post": tmpl html"""
 get "/cookies":
     var expiration = getTime().getGMTime() + initInterval(days=1)
     cookie("testcookie", "hello world!", expiration)
-
     tmpl html"""
         Your cookie says: $(cookie("testcookie"))
         """
@@ -57,7 +55,6 @@ get "/cookies":
 cached "/test2/@post":
     header "Server", "WebFrame - Caching Test"
     maxage 600
-
     tmpl html"""
         This page: "$(@"post")" was cached at
         $( getTime().getLocalTime.format("h:mm:ss tt") ).
@@ -68,9 +65,7 @@ get "/redirect":
     if ?"redirected" == "":
         redirect "/redirect?redirected=1"
     else:
-        tmpl html"""
-            <i>Redirect successful!</i>
-            """
+        result &= "Redirect successful!"
 
 get "/form":
     header "Server", "WebFrame - Test Forms"
@@ -91,9 +86,7 @@ post "/form":
             I see you're $(form("age"))
             """
     else:
-        tmpl html"""
-            Sorry, didn't get that.
-            """
+        result &= "Sorry, didn't get that"
 
 get "/upload":
     header "Server", "WebFrame - Test Forms"
@@ -107,8 +100,9 @@ get "/upload":
 
 post "/upload":
     header "Server", "WebFrame - Test Forms"
-    var file = files("file")
+    var file     = files("file")
     var filename = file.fields["filename"]
+
     if filename != nil and file.body != nil:
         tmpl html"""
             <p>Filename: $filename
@@ -117,8 +111,6 @@ post "/upload":
             <pre>$(file.body)</pre>
             """
     else:
-        tmpl html"""
-            <p>Didn't understand your request
-        """
+        result &= "Didn't understand your request"
 
 run(8080)

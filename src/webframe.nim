@@ -47,7 +47,7 @@ type
             filename: string
         else: nil
 
-    Route = ref object
+    Route = object
         pattern: string
         verb: string
         cache: bool
