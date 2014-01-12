@@ -2,9 +2,8 @@
 # https://github.com/dom96/jester/blob/master/jester.nim
 
 # TODO:
-# - FILE upload (multipart/form-data)
-# - GZIP
 # - Responding w/ files
+# - GZIP, zopfli
 # - 'Compilation' of files
 # - Filesystem change detection
 

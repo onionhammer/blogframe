@@ -107,6 +107,18 @@ get "/upload":
 
 post "/upload":
     header "Server", "WebFrame - Test Forms"
-    tmpl html"""<i>Thanks, we'll save this right away</i>"""
+    var file = files("file")
+    var filename = file.fields["filename"]
+    if filename != nil and file.body != nil:
+        tmpl html"""
+            <p>Filename: $filename
+            <p>New Name: $(form("filename"))
+            <p>Content:
+            <pre>$(file.body)</pre>
+            """
+    else:
+        tmpl html"""
+            <p>Didn't understand your request
+        """
 
 run(8080)

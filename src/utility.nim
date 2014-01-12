@@ -60,6 +60,10 @@ template form*(p): expr {.immediate.} =
     ## Retrieve form value
     request.form[p] ?? ""
 
+template files*(p): expr {.immediate.} =
+    ## Retrieve a file value
+    request.files[p]
+
 # Helper Procedures
 proc headerDate*(time: TTimeInfo): string =
     time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"
@@ -88,11 +92,89 @@ proc getVariables*(parts: seq[string]): TTable[int, string] =
         if p[0] == '@':
             result[i] = p.substr(1)
 
+
+proc parseKeyValue(key, value: var string, line: string) =
+    ## Parse out header key: value pair
+    var i = 0
+    inc(i, line.parseUntil(key, ':', i) + 1)
+    inc(i, line.skipWhiteSpace(i))
+    discard line.parseUntil(value, {'\r', '\L'}, i)
+
+proc parseContentDisposition(header): tuple[name, filename: string] =
+    ## Parse out multi-part form data content disposition
+    var i = 0
+    while i < header.len:
+        var pair, key, value: string
+        inc(i, header.parseUntil(pair, {';', ' '}, i) + 1)
+        var j = pair.parseUntil(key, '=')
+        if j > 0:
+            let lkey = key.toLower
+            if lkey == "name":
+                result.name = pair.captureBetween('"', start=j)
+            elif lkey == "filename":
+                result.filename = pair.captureBetween('"', start=j)
+
+template parsePart(part: string) {.immediate.} =
+    # Parse out content disposition, if it's a file put it into files,
+    # otherwise put it into form.
+    # Iterate through lines
+    var j = 0
+    var isFile = false
+    var partName: string
+    var filePart: tuple[fields: PStringTable, body: string]
+
+    while j < part.len:
+        var key, value, line: string
+        inc(j, part.parseUntil(line, '\L', j) + 1)
+        if line == "\r": break
+        parseKeyValue(key, value, line)
+
+        if key.toLower == "content-disposition":
+            let disposition = parseContentDisposition(value)
+            partName = disposition.name ?? ""
+            isFile   = disposition.filename != nil
+            if isFile:
+                filePart.fields = newStringTable()
+                filePart.fields["filename"] = disposition.filename
+
+        elif isFile:
+            filePart.fields[key] = value
+
+    if isFile:
+        filePart.body   = part.substr(j)
+        files[partName] = filePart
+    else:
+        form[partName] = part.substr(j)
+
 proc parseMultipartForm*(contentType, body: string,
-    form: PStringTable,
-    files: var TTable[string, tuple[fields: PStringTable, body: string]]) =
+        form: var PStringTable,
+        files: var TTable[string, tuple[fields: PStringTable, body: string]]) =
     ## Parse the multi-part form data
-    echo body
+    # Parse content type
+    var boundaryIndex = contentType.find("boundary=")
+    if boundaryIndex < 0: return
+    let boundary = "--" &contentType.substr(boundaryIndex + 9)
+    const nlLen = "\r\L".len
+
+    # Initialize files table
+    files = initTable[string, tuple[fields: PStringTable, body: string]]()
+    form  = newStringTable()
+
+    # Parse body
+    var i = 0
+    while i < body.len:
+        # Assume we're at the beginning of a boundary
+        # Find the next boundary marker
+        var nextIndex = body.find(boundary, i)
+
+        if nextIndex > i:
+            # Get & parse part
+            var part = body.substr(i, nextIndex - 1 - nlLen)
+            parsePart(part)
+            i = nextIndex
+
+        # Seek to end of boundary
+        inc(i, body.skip(boundary, i) + nlLen)
 
 proc parseQueryString*(query: string): PStringTable =
     ## Parse out querystring in path
