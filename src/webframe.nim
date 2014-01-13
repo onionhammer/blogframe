@@ -3,17 +3,18 @@
 
 # TODO:
 # - Responding w/ files
+# - Cleanup utility
 # - GZIP, zopfli
 # - 'Compilation' of files
 # - Filesystem change detection
 
 # Imports
 import macros, strtabs, strutils, tables, cookies
-import server, templates, utility, logging
+import server, templates, utility, logging, headerOps
 from cgi import decodeData
 include responses
 
-export strtabs, logging
+export strtabs, logging, headerOps
 
 
 # Types
@@ -89,14 +90,6 @@ template sendHeaders*(response: expr, now = true) =
     when now:
         line
         response.client.send(response.value)
-
-
-template response*(body: stmt) {.immediate, dirty.} =
-    sendHeaders
-    block:
-        result.handled = true
-        var result = result.client
-        body
 
 
 # Internal Procedures
@@ -233,7 +226,9 @@ proc handleResponse(server: TServer) =
 
 
 template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate.} =
-    bind HTTPRequest, parsePath, routes, add, cachedResponses
+    bind HTTPRequest, HTTPResponse
+    bind parsePath, routes, add, cachedResponses
+
     var route = parsePath(verb, path, cache)
 
     route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
@@ -244,6 +239,7 @@ template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate
             if cachedResponse != nil:
                 result.handled = true
                 result.client &= cachedResponse.rawString
+                return
 
         body
 
