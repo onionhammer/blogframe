@@ -1,3 +1,4 @@
+# Default Style
 template style = tmpl css"""
     body {
         font-family: verdana;
@@ -7,7 +8,7 @@ template style = tmpl css"""
     }
     """
 
-## Canned responses
+# Canned responses
 proc not_found(server: TServer) =
     sendResponse(server, result):
         protocol CODE_404

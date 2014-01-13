@@ -1,38 +1,48 @@
+# Imports
 import times, strtabs, parseutils, strutils, tables, cookies
 from cgi import urlDecode
 import utility
+
 
 # Header Procedures
 template header*(key, value): expr =
     result.headers[key] = value
 
+
 template mime*(value): expr =
     header "Content-Type", value
+
 
 template date*(time): expr =
     ## Format time & injects in header
     header "Date", headerDate(time)
 
+
 template expires*(time): expr =
     ## Format time & injects in header
     header "Expires", headerDate(time)
+
 
 template maxAge*(seconds): expr =
     ## Inject max-age into header
     header "Cache-Control", "max-age=" & $seconds
 
+
 template status*(value): expr =
     result.status = value
+
 
 template cookie*(key): expr =
     ## Retrieve a cookies
     request.cookies[key] ?? ""
+
 
 template cookie*(key, value: string; expires: TTimeInfo;
                  domain = ""; path = ""): expr =
     ## Set a cookie
     bind setCookie
     result.cookies[key] = setCookie(key, value, expires, domain, path, true)
+
 
 template redirect*(path: string, permenant = false) =
     ## Redirect to input path
@@ -54,14 +64,16 @@ template response*(body: stmt) {.immediate, dirty.} =
 proc headerDate*(time: TTimeInfo): string =
     time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"
 
+
 proc getVariables*(parts: seq[string]): TTable[int, string] =
     ## Retrieve the variable portions of the path
     result = initTable[int, string](16)
 
     for i in 0.. parts.len - 1:
-        var p = parts[i]
+        let p = parts[i]
         if p[0] == '@':
             result[i] = p.substr(1)
+
 
 proc parseKeyValue(key, value: var string, line: string) =
     ## Parse out header key: value pair
@@ -69,6 +81,7 @@ proc parseKeyValue(key, value: var string, line: string) =
     inc(i, line.parseUntil(key, ':', i) + 1)
     inc(i, line.skipWhiteSpace(i))
     discard line.parseUntil(value, {'\r', '\L'}, i)
+
 
 proc parseContentDisposition(header): tuple[name, filename: string] =
     ## Parse out multi-part form data content disposition
@@ -83,6 +96,7 @@ proc parseContentDisposition(header): tuple[name, filename: string] =
                 result.name = pair.captureBetween('"', start=j)
             elif lkey == "filename":
                 result.filename = pair.captureBetween('"', start=j)
+
 
 template parsePart(part: string) {.immediate.} =
     # Parse out content disposition, if it's a file put it into files,
@@ -116,6 +130,7 @@ template parsePart(part: string) {.immediate.} =
     else:
         form[partName] = part.substr(j)
 
+
 proc parseMultipartForm*(contentType, body: string,
         form: var PStringTable,
         files: var TTable[string, tuple[fields: PStringTable, body: string]]) =
@@ -124,7 +139,7 @@ proc parseMultipartForm*(contentType, body: string,
     var boundaryIndex = contentType.find("boundary=")
     if boundaryIndex < 0: return
     let boundary = "--" &contentType.substr(boundaryIndex + 9)
-    const nlLen = "\r\L".len
+    const nlLen  = "\r\L".len
 
     # Initialize files table
     files = initTable[string, tuple[fields: PStringTable, body: string]]()
@@ -146,6 +161,7 @@ proc parseMultipartForm*(contentType, body: string,
         # Seek to end of boundary
         inc(i, body.skip(boundary, i) + nlLen)
 
+
 proc parseQueryString*(query: string): PStringTable =
     ## Parse out querystring in path
     result = newStringTable()
@@ -163,11 +179,11 @@ proc parseQueryString*(query: string): PStringTable =
             key = nil
         inc(i)
 
+
 proc parseParams*(path: seq[string], parts: TTable[int, string]): PStringTable =
     ## Determines if input path matches up with parts
-    var
-        init      = true
-        partIndex = 0
+    var init      = true
+    var partIndex = 0
 
     for value in path:
         if parts.hasKey(partIndex):
@@ -178,3 +194,28 @@ proc parseParams*(path: seq[string], parts: TTable[int, string]): PStringTable =
             result[parts[partIndex]] = value
 
         inc partIndex
+
+
+template sendHeaders*(now = true) =
+    ## Send headers
+    sendHeaders(result, now)
+
+
+template sendHeaders*(response: expr, now = true) =
+    ## Send headers
+    protocol response.status ?? CODE_200
+
+    if not response.headers.hasKey("Content-Type"):
+        line "Content-Type: text/html"
+
+    # Write response headers
+    for key, value in response.headers:
+        line key & ": " & value
+
+    # Write cookies
+    for key, value in response.cookies:
+        line "Set-Cookie: " & value
+
+    when now:
+        line
+        response.client.send(response.value)

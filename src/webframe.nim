@@ -11,7 +11,6 @@
 # Imports
 import macros, strtabs, strutils, tables, cookies
 import server, templates, utility, logging, headerOps
-from cgi import decodeData
 include responses
 
 export strtabs, logging, headerOps
@@ -38,8 +37,7 @@ type
         fullPath: string
 
     HTTPResponse* = ref object of Transmission
-        rawString: string
-        status: string
+        rawString, status: string
         handled: bool
         case responseType: ResponseType
         of Raw, Gzip:
@@ -54,42 +52,12 @@ type
         cache: bool
         parts: seq[string]
         variables: TTable[int, string]
-        callback*: HTTPResponseCallback
+        callback: HTTPResponseCallback
 
 
 # Fields
 var routes          = newSeq[Route]()
 var cachedResponses = initTable[string, HTTPResponse]()
-
-
-# External Templates & Procedures
-proc add*(result: var HTTPResponse, value: string) =
-    result.value &= value
-
-
-template sendHeaders*(now = true) =
-    ## Send headers
-    sendHeaders(result, now)
-
-
-template sendHeaders*(response: expr, now = true) =
-    ## Send headers
-    protocol response.status ?? CODE_200
-
-    if not response.headers.hasKey("Content-Type"):
-        line "Content-Type: text/html"
-
-    # Write response headers
-    for key, value in response.headers:
-        line key & ": " & value
-
-    # Write cookies
-    for key, value in response.cookies:
-        line "Set-Cookie: " & value
-
-    when now:
-        line
-        response.client.send(response.value)
 
 
 # Internal Procedures
@@ -246,19 +214,28 @@ template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate
     routes.add(route)
 
 
+# External Webframe Interface
 template get*(path: string, body: stmt): stmt {.immediate.} =
+    ## Add a GET path handler
     bind addRoute
     addRoute("GET", path, false, body)
 
 
 template post*(path: string, body: stmt): stmt {.immediate.} =
+    ## Add a POST path handler
     bind addRoute
     addRoute("POST", path, false, body)
 
 
-template cached*(path: string, body: stmt): stmt {.dirty, immediate.} =
+template cached*(path: string, body: stmt): stmt {.immediate.} =
+    ## Add a cached GET path handler
     bind addRoute
     addRoute("GET", path, true, body)
+
+
+proc add*(result: var HTTPResponse, value: string) =
+    ## Append value to response
+    result.value &= value
 
 
 proc run*(port = 80) =

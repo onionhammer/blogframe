@@ -1,5 +1,8 @@
+# Imports
 import times
 
+
+# Paths
 get "/":
     header "Server", "WebFrame - Root Test"
     const style = css"""
