@@ -1,14 +1,10 @@
 # Imports
-import times, strtabs, parseutils, strutils, tables, cookies
-from cgi import urlDecode
+import strtabs, times, parseutils, strutils, tables
 import utility
+from cgi import urlDecode
 
 
 # Header Procedures
-template header*(key, value): expr =
-    result.headers[key] = value
-
-
 template mime*(value): expr =
     header "Content-Type", value
 
@@ -26,22 +22,6 @@ template expires*(time): expr =
 template maxAge*(seconds): expr =
     ## Inject max-age into header
     header "Cache-Control", "max-age=" & $seconds
-
-
-template status*(value): expr =
-    result.status = value
-
-
-template cookie*(key): expr =
-    ## Retrieve a cookies
-    request.cookies[key] ?? ""
-
-
-template cookie*(key, value: string; expires: TTimeInfo;
-                 domain = ""; path = ""): expr =
-    ## Set a cookie
-    bind setCookie
-    result.cookies[key] = setCookie(key, value, expires, domain, path, true)
 
 
 template redirect*(path: string, permenant = false) =
@@ -87,7 +67,7 @@ proc parseContentDisposition(header): tuple[name, filename: string] =
     ## Parse out multi-part form data content disposition
     var i = 0
     while i < header.len:
-        var pair, key, value: string
+        var pair, key: string
         inc(i, header.parseUntil(pair, {';', ' '}, i) + 1)
         var j = pair.parseUntil(key, '=')
         if j > 0:
@@ -101,8 +81,7 @@ proc parseContentDisposition(header): tuple[name, filename: string] =
 template parsePart(part: string) {.immediate.} =
     # Parse out content disposition, if it's a file put it into files,
     # otherwise put it into form.
-    # Iterate through lines
-    var j = 0
+    var j      = 0
     var isFile = false
     var partName: string
     var filePart: tuple[fields: PStringTable, body: string]
@@ -117,6 +96,7 @@ template parsePart(part: string) {.immediate.} =
             let disposition = parseContentDisposition(value)
             partName = disposition.name ?? ""
             isFile   = disposition.filename != nil
+
             if isFile:
                 filePart.fields = newStringTable()
                 filePart.fields["filename"] = disposition.filename
@@ -127,6 +107,7 @@ template parsePart(part: string) {.immediate.} =
     if isFile:
         filePart.body   = part.substr(j)
         files[partName] = filePart
+
     else:
         form[partName] = part.substr(j)
 
@@ -168,7 +149,6 @@ proc parseQueryString*(query: string): PStringTable =
 
     var key: string
     var i = 0
-
     while i < query.len:
         var value: string
         inc(i, query.parseUntil(value, {'&', '='}, i))

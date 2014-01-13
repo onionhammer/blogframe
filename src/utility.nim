@@ -1,5 +1,6 @@
 # Imports
-import parseutils
+import times, parseutils, cookies
+from cgi import urlDecode
 
 
 # Custom operators
@@ -8,26 +9,54 @@ template `??`*(value, default): expr =
     if value == nil: default
     else: value
 
+
 template `@`*(p: string): expr =
     ## Retrieve the parameter from the string
     request.parameters[$p]
+
 
 template `?`*(p): expr {.immediate.} =
     ## Retrieve querystring value
     request.querystring[$p] ?? ""
 
+
 template form*(p): expr {.immediate.} =
     ## Retrieve form value
     request.form[p] ?? ""
+
 
 template files*(p): expr {.immediate.} =
     ## Retrieve a file value
     request.files[p]
 
+
+template header*(key, value): expr =
+    ## Retrieve a header value
+    result.headers[key] = value
+
+
+template cookie*(key): expr =
+    ## Retrieve a cookies
+    request.cookies[key] ?? ""
+
+
+template cookie*(key, value: string; expires: TTimeInfo;
+                 domain = ""; path = ""): expr =
+    ## Set a cookie
+    bind setCookie
+    result.cookies[key] = setCookie(key, value, expires, domain, path, true)
+
+
+template status*(value): expr =
+    ## Set status
+    result.status = value
+
+
 # Helper Procedures
 template return_ifnot*(cond): expr =
     if not cond:
         return false
+
 
 proc getParts*(path: string): seq[string] =
     ## Break up the path by `/`
