@@ -22,11 +22,10 @@ get "/":
         """
 
 get "/test.js":
-    header "Server", "WebFrame - Javascript"
-    mime   "application/javascript"
-    maxage  600
-    send    readfile("test.js")
-
+    header  "Server", "WebFrame - Javascript"
+    mime    "application/javascript"
+    maxage   600
+    sendfile "test.js", false
 
 get "/handle":
     header "Server", "WebFrame - Writing directly to socket"

@@ -40,6 +40,11 @@ template response*(body: stmt) {.immediate, dirty.} =
         body
 
 
+template status*(value): expr =
+    ## Set status
+    result.status = value
+
+
 # Header Parsing
 proc headerDate*(time: TTimeInfo): string =
     time.format("ddd, dd MMM yyyy HH:mm:ss") & " GMT"

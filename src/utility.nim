@@ -46,13 +46,18 @@ template cookie*(key, value: string; expires: TTimeInfo;
     result.cookies[key] = setCookie(key, value, expires, domain, path, true)
 
 
-template status*(value): expr =
-    ## Set status
-    result.status = value
-
 template send*(value): expr =
     ## Send arbitrary value
     result &= value
+
+
+template sendfile*(name: string, useGzip = true): stmt =
+    ## Set file as response to request
+    result.responseType =
+        when useGzip: GzipFile
+        else: RawFile
+    result.filename = name
+
 
 # Helper Procedures
 template return_ifnot*(cond): expr =

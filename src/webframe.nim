@@ -175,7 +175,9 @@ proc handleResponse(server: TServer) =
                 result &= response.value
 
             of RawFile:
-                # TODO - Read file
+                line #Write another line to indicate end of headers
+                # TODO Read/write file in chunks of x bytes
+                result &= readFile(response.filename)
 
             of GzipFile:
                 # TODO - Set response encoding AND read file
