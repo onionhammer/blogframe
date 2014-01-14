@@ -24,10 +24,9 @@ get "/":
 get "/test.js":
     header "Server", "WebFrame - Javascript"
     mime   "application/javascript"
-    tmpl js"""
-        var x = "hello world!";
-        console.log(x);
-        """
+    maxage  600
+    send    readfile("test.js")
+
 
 get "/handle":
     header "Server", "WebFrame - Writing directly to socket"

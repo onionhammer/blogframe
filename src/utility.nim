@@ -1,6 +1,5 @@
 # Imports
 import times, parseutils, cookies
-from cgi import urlDecode
 
 
 # Custom operators
@@ -51,6 +50,9 @@ template status*(value): expr =
     ## Set status
     result.status = value
 
+template send*(value): expr =
+    ## Send arbitrary value
+    result &= value
 
 # Helper Procedures
 template return_ifnot*(cond): expr =

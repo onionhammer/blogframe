@@ -171,14 +171,14 @@ proc handleResponse(server: TServer) =
                 # Set response encoding
                 line "Content-Encoding: gzip"
                 line # Write another line to indicate end of headers
-                #TODO - GZip value
+                # TODO - GZip value
                 result &= response.value
 
             of RawFile:
-                #TODO - Read file
+                # TODO - Read file
 
             of GzipFile:
-                #TODO - Set response encoding AND read file
+                # TODO - Set response encoding AND read file
                 line "Content-Encoding: gzip"
                 line # Write another line to indicate end of headers
 
@@ -201,7 +201,7 @@ template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate
 
     route.callback = proc (request: HTTPRequest, result: var HTTPResponse) =
         when cache:
-            var cachedResponse = webframe.cachedResponses[request.fullPath]
+            var cachedResponse = cachedResponses[request.fullPath]
 
             # Check if result is cached
             if cachedResponse != nil:
@@ -221,16 +221,16 @@ template get*(path: string, body: stmt): stmt {.immediate.} =
     addRoute("GET", path, false, body)
 
 
-template post*(path: string, body: stmt): stmt {.immediate.} =
-    ## Add a POST path handler
-    bind addRoute
-    addRoute("POST", path, false, body)
-
-
 template cached*(path: string, body: stmt): stmt {.immediate.} =
     ## Add a cached GET path handler
     bind addRoute
     addRoute("GET", path, true, body)
+
+
+template post*(path: string, body: stmt): stmt {.immediate.} =
+    ## Add a POST path handler
+    bind addRoute
+    addRoute("POST", path, false, body)
 
 
 proc add*(result: var HTTPResponse, value: string) =
