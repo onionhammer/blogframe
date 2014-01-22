@@ -9,7 +9,7 @@ template style = tmpl css"""
     """
 
 # Canned responses
-proc not_found(server: TServer) =
+proc not_found(server: TUVRequest) =
     sendResponse(server, result):
         protocol CODE_404
         line

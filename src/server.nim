@@ -1,11 +1,10 @@
 # Imports
 import macros
-import httpserver, sockets
-export httpserver, sockets
+import nimuv
+export nimuv
 
 # Fields
-var server*: TServer
-var handleResponse*: proc(server: TServer)
+var handleResponse*: proc(server: TUVRequest)
 
 const
     CODE_200* = "200 OK"
@@ -21,14 +20,6 @@ const
 
 
 # Procedures
-template `&=`*(result, value): expr {.immediate.} =
-    add(result, value)
-
-
-proc add*(result: TSocket, value: string) =
-    result.send(value)
-
-
 template protocol*(code = CODE_200): expr =
     result &= "HTTP/1.1 " & code & wwwnl
 
@@ -40,10 +31,10 @@ template line*(value: string = ""): expr =
 template sendResponse*(server, result: expr, body: stmt): stmt {.immediate.} =
     var result = ""
     body
-    server.client.send(result)
+    server.add(result)
 
 
-proc defaultResponse(server: TServer) =
+proc defaultResponse(server: TUVRequest) =
     sendResponse(server, result):
         protocol CODE_501
         line "Content-type: text/html"
@@ -51,7 +42,7 @@ proc defaultResponse(server: TServer) =
         line "Server not set up"
 
 
-proc handleHttpRequest*(server: TServer) =
+proc handleHttpRequest*(server: TUVRequest) =
     var client = server.client
 
     try:
@@ -65,16 +56,14 @@ proc handleHttpRequest*(server: TServer) =
             line "Content-type: text/html"
             line
             line "Could not handle request"
+        when defined(debug): raise
 
-    client.close()
+    server.close()
 
 
 proc start*(port = 8080, reuseAddr = true) =
-    server.open(port.TPort, reuseAddr)
-
-    while true:
-        server.next()
-        server.handleHttpRequest()
+    nimuv.handleResponse = server.handleHttpRequest
+    nimuv.run(port = port)
 
 
 # Initialize

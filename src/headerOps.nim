@@ -203,4 +203,4 @@ template sendHeaders*(response: expr, now = true) =
 
     when now:
         line
-        response.client.send(response.value)
+        response.client.add(response.value)

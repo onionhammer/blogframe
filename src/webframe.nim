@@ -29,7 +29,7 @@ type
 
     Transmission* = object of TObject
         cookies, headers: PStringTable
-        client: TSocket
+        client: TUVRequest
 
     HTTPRequest* = ref object of Transmission
         parameters, querystring, form: PStringTable
@@ -94,7 +94,7 @@ proc isMatch(route: Route, verb: string, parts: seq[string], parameters: PString
     return true
 
 
-proc makeRequest(route: Route, server: TServer, parameters: PStringTable): HTTPRequest =
+proc makeRequest(route: Route, server: TUVRequest, parameters: PStringTable): HTTPRequest =
     ## Encapsulate request
     var cookies =
         if server.headers["Cookie"] != nil: parseCookies(server.headers["Cookie"])
@@ -131,7 +131,7 @@ template matchRoute(route, parameters: expr, body: stmt): stmt {.immediate.} =
     server.not_found()
 
 
-proc handleResponse(server: TServer) =
+proc handleResponse(server: TUVRequest) =
     ## Handles all requests sent in from server
 
     # Determine path & verb
@@ -143,7 +143,7 @@ proc handleResponse(server: TServer) =
         var response = HTTPResponse(
             responseType: Raw,
             value:        "",
-            client:       server.client,
+            client:       server,
             headers:      newStringTable(),
             cookies:      newStringTable()
         )
@@ -192,7 +192,7 @@ proc handleResponse(server: TServer) =
                 response.rawString = result
                 cachedResponses[server.path] = response
 
-            server.client.send result
+            server.add result
 
 
 template addRoute(verb, path: string, cache: bool, body: stmt): stmt {.immediate.} =
