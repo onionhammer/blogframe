@@ -12,8 +12,11 @@
 import macros, strtabs, strutils, tables, cookies, compression
 import server, templates, utility, logging, headerOps
 include responses
-
 export strtabs, logging, headerOps
+
+# Import extensions
+import extensions.staticfiles
+export staticfiles
 
 
 # Types
@@ -250,3 +253,4 @@ proc run*(port = 80) =
 # Tests
 when isMainModule:
     include tests
+    include extensions.blogtests
