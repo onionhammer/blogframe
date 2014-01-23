@@ -45,18 +45,21 @@ proc defaultResponse(server: TUVRequest) =
 proc handleHttpRequest*(server: TUVRequest) =
     var client = server.client
 
-    try:
-        # Generate a response
+    when defined(debug):
         handleResponse(server)
 
-    except:
-        # Display error page
-        sendResponse(server, result):
-            protocol CODE_400
-            line "Content-type: text/html"
-            line
-            line "Could not handle request"
-        when defined(debug): raise
+    else:
+        try:
+            # Generate a response
+            handleResponse(server)
+
+        except:
+            # Display error page
+            sendResponse(server, result):
+                protocol CODE_400
+                line "Content-type: text/html"
+                line
+                line "Could not handle request"
 
     server.close()
 

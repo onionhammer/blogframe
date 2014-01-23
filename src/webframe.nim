@@ -4,12 +4,12 @@
 # TODO:
 # - Responding w/ files
 # - Cleanup utility
-# - GZIP, zopfli
+# - *DEFLATE, zopfli
 # - 'Compilation' of files
 # - Filesystem change detection
 
 # Imports
-import macros, strtabs, strutils, tables, cookies
+import macros, strtabs, strutils, tables, cookies, compression
 import server, templates, utility, logging, headerOps
 include responses
 
@@ -25,7 +25,7 @@ type
         TTable[string, tuple[fields: PStringTable, body: string]]
 
     ResponseType* = enum
-        Raw, Gzip, RawFile, GzipFile, Empty
+        Raw, Deflate, RawFile, DeflateFile, Empty
 
     Transmission* = object of TObject
         cookies, headers: PStringTable
@@ -40,9 +40,9 @@ type
         rawString, status: string
         handled: bool
         case responseType: ResponseType
-        of Raw, Gzip:
+        of Raw, Deflate:
             value: string
-        of RawFile, GzipFile:
+        of RawFile, DeflateFile:
             filename: string
         else: nil
 
@@ -167,22 +167,22 @@ proc handleResponse(server: TUVRequest) =
                 line # Write another line to indicate end of headers
                 result &= response.value
 
-            of Gzip:
+            of Deflate:
                 # Set response encoding
-                line "Content-Encoding: gzip"
+                line "Content-Encoding: deflate"
                 line # Write another line to indicate end of headers
-                # TODO - GZip value
-                result &= response.value
+                result &= deflateString(response.value)
 
             of RawFile:
                 line #Write another line to indicate end of headers
                 # TODO Read/write file in chunks of x bytes
                 result &= readFile(response.filename)
 
-            of GzipFile:
+            of DeflateFile:
                 # TODO - Set response encoding AND read file
-                line "Content-Encoding: gzip"
+                line "Content-Encoding: deflate"
                 line # Write another line to indicate end of headers
+                result &= deflateString( readFile(response.filename))
 
             of Empty:
                 return # Send no response
@@ -192,6 +192,7 @@ proc handleResponse(server: TUVRequest) =
                 response.rawString = result
                 cachedResponses[server.path] = response
 
+            # echo result
             server.add result
 
 

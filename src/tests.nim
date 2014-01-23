@@ -15,8 +15,8 @@ get "/":
         """
 
     tmpl html"""
+        <script src=test.js async></script>
         <style>$style</style>
-        <script src=test.js></script>
         <title>Hello world!</title>
         <bold>Hello world!</bold>
         """
@@ -25,7 +25,7 @@ get "/test.js":
     header  "Server", "WebFrame - Javascript"
     mime    "application/javascript"
     maxage   600
-    sendfile "test.js", false
+    sendfile "test.js", true
 
 get "/handle":
     header "Server", "WebFrame - Writing directly to socket"
@@ -113,5 +113,18 @@ post "/upload":
             """
     else:
         result &= "Didn't understand your request"
+
+
+get "/deflate":
+    result.responseType = Deflate
+    header "Server", "WebFrame - Dynamic Deflate Test!"
+    tmpl html"""
+        <p>Hello, this is some stuff!</p>
+        <ul>
+            $for i in 1.. 100 {
+                <li>$i</li>
+            }
+        </ul>
+        """
 
 run(8080)

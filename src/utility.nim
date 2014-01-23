@@ -51,10 +51,10 @@ template send*(value): expr =
     result &= value
 
 
-template sendfile*(name: string, useGzip = true): stmt =
+template sendfile*(name: string, useDeflate = true): stmt =
     ## Set file as response to request
     result.responseType =
-        when useGzip: GzipFile
+        when useDeflate: DeflateFile
         else: RawFile
     result.filename = name
 
