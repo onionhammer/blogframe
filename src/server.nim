@@ -43,8 +43,6 @@ proc defaultResponse(server: TUVRequest) =
 
 
 proc handleHttpRequest*(server: TUVRequest) =
-    var client = server.client
-
     when defined(debug):
         handleResponse(server)
 

@@ -8,7 +8,7 @@ import views/article
 
 compile articles:
     # Compile all articles at startup
-    for f in files(root / "articles" / "*.rst"):
+    for f in files(root/ "articles/*.rst"):
         save(f, article(readFile(f)))
 
 # cached "/":

@@ -1,3 +1,9 @@
+proc getRoot*: string = "/" #TODO - Setting
+
+template root*: expr =
+    bind getRoot
+    getRoot()
+
 proc publish*(path: string) =
     ## Processs & publish the input path (pattern)
     nil
