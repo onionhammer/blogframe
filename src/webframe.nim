@@ -10,13 +10,9 @@
 
 # Imports
 import macros, strtabs, strutils, tables, cookies, compression
-import server, templates, utility, logging, headerOps
+import server, templates, utility, logging, headerOps, nimuv
 include responses
-export strtabs, logging, headerOps
-
-# Import extensions
-import extensions.staticfiles
-export staticfiles
+export tables, strtabs, logging, headerOps, nimuv, utility
 
 
 # Types
@@ -31,22 +27,22 @@ type
         Raw, Deflate, RawFile, DeflateFile, Empty
 
     Transmission* = object of TObject
-        cookies, headers: PStringTable
-        client: TUVRequest
+        cookies*, headers*: PStringTable
+        client*: TUVRequest
 
     HTTPRequest* = ref object of Transmission
-        parameters, querystring, form: PStringTable
-        files: FileData
-        fullPath: string
+        parameters*, querystring*, form*: PStringTable
+        files*: FileData
+        fullPath*: string
 
     HTTPResponse* = ref object of Transmission
-        rawString, status: string
-        handled: bool
-        case responseType: ResponseType
+        rawString*, status*: string
+        handled*: bool
+        case responseType*: ResponseType
         of Raw, Deflate:
-            value: string
+            value*: string
         of RawFile, DeflateFile:
-            filename: string
+            filename*: string
         else: nil
 
     Route = object
@@ -55,7 +51,7 @@ type
         cache: bool
         parts: seq[string]
         variables: TTable[int, string]
-        callback: HTTPResponseCallback
+        callback*: HTTPResponseCallback
 
 
 # Fields
@@ -253,4 +249,3 @@ proc run*(port = 80) =
 # Tests
 when isMainModule:
     include tests
-    include extensions.blogtests

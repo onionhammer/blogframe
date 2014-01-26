@@ -1,0 +1,21 @@
+=========
+New Blog
+=========
+:Date: 04.06.13
+
+Where is everything?
+--------------------
+
+I have lots of ideas for posts coming, but it will take some time to actually get everything ready. I'm also still finalizing the Jukebox functionality, and ironing out a few production issues which have cropped up in the Jukebox's authentication mechanism.
+
+Update: The Jukebox is now working, but still has some issues keeping synced; so my next tasks are to
+
+- Ensure that if a mobile device suspends the contributor interface, that track progress is kept up-to-date
+- Ensure that the player state is cleared after the player/jukebox quits
+
+Update 2: The Jukebox is causing server stability issues, so I'm taking it down while I figure it out locally. More to come :S
+
+Update 3: Okay, the Jukebox is back.. Unfortunately I've discovered a limitation in IIS (enforced by the Windows licensing team, a.k.a. lawyers), which means I can only keep 10 concurrent requests going at any given time.. so until I move to a real production server, the Jukebox can't be used by too many people simultaneously ;)
+
+Stay tuned!
+-----------
