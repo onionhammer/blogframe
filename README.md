@@ -1,2 +1,2 @@
-webframe
+blogframe
 ========
