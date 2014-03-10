@@ -4,27 +4,27 @@ import packages/docutils/rstgen
 
 
 # Types
-type IView = generic x
+type IView* = generic x
     render(x) is string
 
 
 # Procedures
 template compile*(filename, content, pattern: string, body: stmt) {.immediate, dirty.} =
 
+    # TODO: Add filesystem monitor for this directory?
+
     # Find all files & iterate through them
+    for filename in walkFiles(pattern):
 
-    # For each file, retrieve content & call body
+        # For each file, retrieve content & call body
+        var content = readFile(filename)
 
-    # var content = readFile(path)
-
-
-
-template action*(path, mime = "text/html", body: stmt) {.immediate.} =
-    var result = ""
+        # Call input body
+        body
 
 
 proc rst_to_html*(content: string): string =
-    result = rstToHtml(
+    rstToHtml(
         content, {},
         newStringTable(modeStyleInsensitive)
     )
@@ -33,42 +33,17 @@ proc rst_to_html*(content: string): string =
 # Tests
 when isMainModule:
 
-    compile filename, content, "*.rst":
-        var content = rstToHtml(content)
-
-
-when false:
-
     import templates
 
-    # Layout
     proc master(view: string): string = tmpli html"""
         <html>
+            <style>
+                body { background: #000; color: #FFF; }
+            </style>
             <div id="content">$view</div>
         </html>
         """
 
-    # View (would be import)
-    # import view
-    type IndexInfo = object
-        name: string
-
-    # Render the model
-    proc render(model: IndexInfo): string = tmpli html"""
-        <h1>Hello there, $(model.name)</h1>
-        """
-
-    # get "/":
-    var model = IndexInfo(name: "Smith")
-    echo master(model.render)
-
-    # Compile all articles to the public folder at start.
-    # Also monitors pattern for changes and re-runs body if
-    # changes occur.
-    compile filename, rst, "/articles/*.rst":
-        var content = rstToHtml(rst)
-        writefile filename & ".html", master(content)
-
-    action "/", "text/html": tmpl html"""
-        <h1>Hello, world!</h1>
-        """
+    compile filename, content, "*.rst":
+        var html = rstToHtml(content)
+        writefile filename.changeFileExt(".html"), master(html)

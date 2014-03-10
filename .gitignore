@@ -225,3 +225,7 @@ pip-log.txt
 .mr.developer.cfg
 
 src/blog
+
+src/blogframe
+
+src/sample.html
