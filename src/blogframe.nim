@@ -10,6 +10,7 @@ type IView* = generic x
 
 # Procedures
 template compile*(filename, content, pattern: string, body: stmt) {.immediate, dirty.} =
+    bind walkFiles, readFile
 
     # TODO: Add filesystem monitor for this directory?
 
