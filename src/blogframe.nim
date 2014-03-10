@@ -1,5 +1,6 @@
 # Imports
-import os
+import os, strtabs
+import packages/docutils/rstgen
 
 
 # Types
@@ -8,16 +9,35 @@ type IView = generic x
 
 
 # Procedures
-template compile*(filename, rst, pattern: string, body: stmt) {.immediate.} =
-    discard
+template compile*(filename, content, pattern: string, body: stmt) {.immediate, dirty.} =
+
+    # Find all files & iterate through them
+
+    # For each file, retrieve content & call body
+
+    # var content = readFile(path)
+
 
 
 template action*(path, mime = "text/html", body: stmt) {.immediate.} =
     var result = ""
 
 
+proc rst_to_html*(content: string): string =
+    result = rstToHtml(
+        content, {},
+        newStringTable(modeStyleInsensitive)
+    )
+
+
 # Tests
 when isMainModule:
+
+    compile filename, content, "*.rst":
+        var content = rstToHtml(content)
+
+
+when false:
 
     import templates
 
