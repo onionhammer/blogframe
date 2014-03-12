@@ -1,8 +1,7 @@
 The Test
 ===========
 :Date: 05.02.13
-..
-    Description: The Test
+:Description: The Test
 
 
 What's the Test?
