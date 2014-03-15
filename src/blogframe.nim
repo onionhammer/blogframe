@@ -2,20 +2,18 @@
 
 # Imports
 import os, strtabs, times, strutils
+
 import packages/docutils/rstgen,
-    packages/docutils/rstast,
-    packages/docutils/rst
+       packages/docutils/rstast,
+       packages/docutils/rst
+
+import private/types, index
 
 when isMainModule:
     import marshal
 
-
-# Types
-type
-    IView* = generic x
-        render(x) is string
-    BlogPost* = object
-        content*, description*, title*, date*: string
+# Exports
+export types.IView, types.BlogPost
 
 
 # Procedures
