@@ -29,6 +29,9 @@ proc parseDate(date: string): TTime =
     inc i, parseWhile(strDate, d, valid, i) + 1
     discard parseWhile(strDate, y, valid, i)
 
+    # Prefix with "20" for this century
+    if y.len == 2: y = "20" & y
+
     # Create TTime
     return TTimeInfo(
         monthday: d.parseInt,
@@ -73,7 +76,7 @@ proc parse_metadata(list: PRstNode, post: var BlogPost) =
         of "description":
             post.description = value
         of "date":
-            post.date = parseDate(value.strip)
+            post.date = parseDate(value)
 
 
 proc denilify(value: var string) =
@@ -170,5 +173,5 @@ when isMainModule:
     # Test date parsing
     echo "4/3/2014".parseDate()
     echo "4.3.2014".parseDate()
-    echo "4 3 2014".parseDate()
-    echo "4-03-2014".parseDate()
+    echo " 05.02.13".parseDate()
+    echo " 4-03-2014".parseDate()
