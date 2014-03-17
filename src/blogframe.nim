@@ -1,7 +1,7 @@
 # Ref: http://build.nimrod-lang.org/docs/rstgen.html
 
 # Imports
-import os, strtabs, times, strutils
+import os, strtabs, times, strutils, parseutils
 
 import packages/docutils/rstgen,
        packages/docutils/rstast,
@@ -17,6 +17,26 @@ export types.IView, types.BlogPost
 
 
 # Procedures
+proc parseDate(date: string): TTime =
+    ## Assumes M/D/Y
+    var i = 0
+    var m, d, y: string
+    var valid = {'0'.. '9'}
+    var strDate = date.strip
+
+    # Parse date string
+    inc i, parseWhile(strDate, m, valid, 0) + 1
+    inc i, parseWhile(strDate, d, valid, i) + 1
+    discard parseWhile(strDate, y, valid, i)
+
+    # Create TTime
+    return TTimeInfo(
+        monthday: d.parseInt,
+        month: TMonth(m.parseInt - 1),
+        year: y.parseInt
+    ).TimeInfoToTime
+
+
 template compile*(filename, content, pattern: string, body: stmt) {.immediate, dirty.} =
     ## Iterate through matching file pattern and execute body
     bind walkFiles, readFile
@@ -53,7 +73,7 @@ proc parse_metadata(list: PRstNode, post: var BlogPost) =
         of "description":
             post.description = value
         of "date":
-            post.date = value
+            post.date = parseDate(value)
 
 
 proc denilify(value: var string) =
@@ -109,7 +129,6 @@ proc open_post*(content: string): BlogPost =
     result.content = generatedHTML
     denilify(result.description)
     denilify(result.title)
-    denilify(result.date)
 
 
 proc titleEncode*(value: string): string =
@@ -147,3 +166,5 @@ when isMainModule:
     var encoded = titleEncode(decoded)
     echo "Encoded: ", encoded
     assert titleDecode(encoded) == decoded
+
+    echo "4/3/2014".parseDate()
