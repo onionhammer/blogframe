@@ -25,7 +25,7 @@ proc parseDate(date: string): TTime =
     var strDate = date.strip
 
     # Parse date string
-    inc i, parseWhile(strDate, m, valid, 0) + 1
+    inc i, parseWhile(strDate, m, valid) + 1
     inc i, parseWhile(strDate, d, valid, i) + 1
     discard parseWhile(strDate, y, valid, i)
 
@@ -167,4 +167,8 @@ when isMainModule:
     echo "Encoded: ", encoded
     assert titleDecode(encoded) == decoded
 
+    # Test date parsing
     echo "4/3/2014".parseDate()
+    echo "4.3.2014".parseDate()
+    echo "4 3 2014".parseDate()
+    echo "4-03-2014".parseDate()
