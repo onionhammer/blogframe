@@ -7,7 +7,7 @@ import packages/docutils/rstgen,
        packages/docutils/rstast,
        packages/docutils/rst
 
-import private/types, index
+import private/types, blogindex
 
 when isMainModule:
     import marshal

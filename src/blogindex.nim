@@ -67,12 +67,12 @@ proc add*(reference: IndexReference, post: BlogPost) =
     ## Add a blog post to the index
 
     # Insert record into index, in correct order
-    var gathered = newStringOfCap(1000)
+    var gathered = ""
     var date     = post.date.int
     var added    = false
 
     for item in reference.list:
-        if item.date.int > date:
+        if date > item.date.int:
             gathered.add(post.format)
             added = true
         gathered.add(item.format)
@@ -84,9 +84,18 @@ proc add*(reference: IndexReference, post: BlogPost) =
     writeFile(reference.file, gathered)
 
 
+proc `[]`*(reference: IndexReference, title: string): BlogPost =
+    ## Find matching title
+    var lowerTitle = title
+
+    for item in reference.list:
+        if item.title == lowerTitle:
+            return item
+
+
 when isMainModule:
     # Test index
-    var reference = index.open("test.index")
+    var reference = blogindex.open("test.index")
 
     # Empty re-index should clear out index
     reference.reindex()
@@ -102,14 +111,18 @@ when isMainModule:
     reference.add BlogPost(
         title: "This is something else",
         path:  "file2.rst",
-        date:  (getTime().int - 10).TTime
+        date:  (getTime().int - 53).TTime
     )
 
     # Test iteration
     var count = 0
     for i in reference.list:
-        if   count == 0: assert i.title == "This is something else"
-        elif count == 1: assert i.title == "some name; of a thing"
+        if   count == 1: assert i.title == "This is something else"
+        elif count == 0: assert i.title == "some name; of a thing"
         inc count
 
     assert count == 2, "Number of items was incorrect"
+
+
+    # Test lookup
+    assert reference["This is something else"].path == "file2.rst"
