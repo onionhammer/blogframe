@@ -73,7 +73,7 @@ proc parse_metadata(list: PRstNode, post: var BlogPost) =
         of "description":
             post.description = value
         of "date":
-            post.date = parseDate(value)
+            post.date = parseDate(value.strip)
 
 
 proc denilify(value: var string) =
