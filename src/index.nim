@@ -4,7 +4,7 @@ import private/types
 
 
 # Types
-type IndexReference = object
+type IndexReference* = object
     file: string
 
 
