@@ -7,7 +7,7 @@ import packages/docutils/rstgen,
        packages/docutils/rstast,
        packages/docutils/rst
 
-import private/types, blogindex
+import private/types
 
 when isMainModule:
     import marshal
@@ -19,18 +19,16 @@ export types.IView, types.BlogPost
 # Procedures
 proc parseDate(date: string): TTime =
     ## Assumes M/D/Y
-    var i = 0
     var m, d, y: string
-    var valid = {'0'.. '9'}
+
+    var i       = 0
+    var valid   = {'0'.. '9'}
     var strDate = date.strip
 
     # Parse date string
-    inc i, parseWhile(strDate, m, valid) + 1
+    inc i, parseWhile(strDate, m, valid, 0) + 1
     inc i, parseWhile(strDate, d, valid, i) + 1
     discard parseWhile(strDate, y, valid, i)
-
-    # Prefix with "20" for this century
-    if y.len == 2: y = "20" & y
 
     # Create TTime
     return TTimeInfo(
@@ -159,9 +157,9 @@ when isMainModule:
     var text = "sample.rst".readFile()
     var post = open_post(text)
 
-    # compile filename, content, "*.rst":
-    #     var html = rstToHtml(content)
-    #     writefile filename.changeFileExt(".html"), master(html)
+    compile filename, content, "*.rst":
+        var html = rstToHtml(content)
+        writefile filename.changeFileExt(".html"), master(html)
 
 
     # Test url encode / decode
@@ -170,8 +168,4 @@ when isMainModule:
     echo "Encoded: ", encoded
     assert titleDecode(encoded) == decoded
 
-    # Test date parsing
     echo "4/3/2014".parseDate()
-    echo "4.3.2014".parseDate()
-    echo " 05.02.13".parseDate()
-    echo " 4-03-2014".parseDate()
