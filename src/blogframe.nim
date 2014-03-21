@@ -30,6 +30,10 @@ proc parseDate(date: string): TTime =
     inc i, parseWhile(strDate, d, valid, i) + 1
     discard parseWhile(strDate, y, valid, i)
 
+    # Move to correct year
+    if y.len == 2:
+        y = "20" & y # Add 2000 years
+
     # Create TTime
     return TTimeInfo(
         monthday: d.parseInt,
