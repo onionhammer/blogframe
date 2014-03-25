@@ -4,6 +4,6 @@ import times
 type
     IView* = generic x
         render(x) is string
-    BlogPost* = object
-        content*, description*, title*, path*: string
+    BlogPost* = ref object
+        content*, description*, title*: string
         date*: TTime

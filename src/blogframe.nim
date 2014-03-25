@@ -96,6 +96,9 @@ proc open_post*(content: string): BlogPost =
     var hasToc = false
     var rst    = content.rstParse("", 0, 1, hasToc, {})
 
+    # Initialize BlogPost
+    new(result)
+
     # Initialize RST generator
     var gen: TRstGenerator
     gen.initRstGenerator(outHtml, defaultConfig(), "", {}, nil, nil)
@@ -158,12 +161,12 @@ when isMainModule:
         """
 
     # Test RST to HTML
-    var text = "sample.rst".readFile()
-    var post = open_post(text)
+    # var text = "sample.rst".readFile()
+    # var post = open_post(text)
 
-    compile filename, content, "*.rst":
-        var html = rstToHtml(content)
-        writefile filename.changeFileExt(".html"), master(html)
+    # compile filename, content, "*.rst":
+    #     var html = rstToHtml(content)
+    #     writefile filename.changeFileExt(".html"), master(html)
 
 
     # Test url encode / decode
