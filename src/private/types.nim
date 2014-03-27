@@ -5,5 +5,5 @@ type
     IView* = generic x
         render(x) is string
     BlogPost* = ref object
-        content*, description*, title*: string
+        content*, description*, title*, cached*: string
         date*: TTime
