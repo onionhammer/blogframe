@@ -30,14 +30,13 @@ proc build*(reference: var IndexReference) =
 
     sort(
         reference.table,
-        proc (a, b: TPair): int = cmp(b.val.date, a.val.date)
+        proc (a, b: TPair): int = cmp(b.val.date.int, a.val.date.int)
     )
 
 
-proc `[]`*(reference: IndexReference, title: string): BlogPost =
+proc `[]`*(reference: IndexReference, title: string): BlogPost {.noinit.} =
     ## Find matching title
-    if reference.table.hasKey(title):
-        return reference.table[title]
+    reference.table[title]
 
 
 when isMainModule:
@@ -53,7 +52,7 @@ when isMainModule:
     # Insert next item
     reference.add BlogPost(
         title: "This is something else",
-        date:  (getTime().int - 53).TTime
+        date:  (getTime().int - 100).TTime
     )
 
     # Build index
@@ -67,7 +66,6 @@ when isMainModule:
         inc count
 
     assert count == 2, "Number of items was incorrect"
-
 
     # Test lookup
     assert reference["This is something else"].title == "This is something else"
