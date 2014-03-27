@@ -1,6 +1,7 @@
 ## Index of blog posts
 import times, tables
 import private/types
+from blogframe import titleEncode
 
 
 # Types
@@ -21,7 +22,7 @@ iterator list*(reference: IndexReference): BlogPost =
 
 proc add*(reference: IndexReference, post: BlogPost) =
     ## Add a blog post to the index
-    reference.table.add (post.title, post)
+    reference.table.add (titleEncode(post.title), post)
 
 
 proc build*(reference: var IndexReference) =
@@ -68,4 +69,4 @@ when isMainModule:
     assert count == 2, "Number of items was incorrect"
 
     # Test lookup
-    assert reference["This is something else"].title == "This is something else"
+    assert reference["This-is-something-else"].title == "This is something else"
