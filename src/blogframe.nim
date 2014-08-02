@@ -17,7 +17,7 @@ export types.IView, types.BlogPost
 
 
 # Procedures
-proc parseDate(date: string): TTime =
+proc parseDate*(date: string): TTime =
     ## Assumes M/D/Y
     var m, d, y: string
 
