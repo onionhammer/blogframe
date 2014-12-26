@@ -39,7 +39,7 @@ proc parseDate*(date: string): TTime =
         monthday: d.parseInt,
         month: TMonth(m.parseInt - 1),
         year: y.parseInt
-    ).TimeInfoToTime
+    ).timeInfoToTime
 
 
 template compile*(filename, content, pattern: string, body: stmt) {.immediate, dirty.} =
